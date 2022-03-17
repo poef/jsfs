@@ -4,6 +4,7 @@ export function defaultFetch(req) {
 		if (!res.ok) {
 			throw new FetchError(res.status+': '+res.statusText, { cause: res });
 		}
+		return res
 	});
 }
 

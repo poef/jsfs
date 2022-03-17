@@ -45,23 +45,22 @@ export default async function oauth2Fetch(req) {
 	if (req.oauth2 && req.oauth2.forceAuthorization) {
 		return authorizedFetch(req);
 	}
-	try {
-		let response = await defaultFetch(req);
-	} catch (err) {
-		if (err.cause && err.cause.status) {
-			switch(err.cause.status) {
-				case 400:
-					// TODO check if the error is recoverable
-					// else rethrow
-				case 401:
-					if (req.oauth2) {
-						return authorizedFetch(req, defaultFetch);
-					}
-				break;
+	return defaultFetch(req)
+		.catch((err) => {
+			if (err.cause && err.cause.status) {
+				switch(err.cause.status) {
+					case 400:
+						// TODO check if the error is recoverable
+						// else rethrow
+					case 401:
+						if (req.oauth2) {
+							return authorizedFetch(req, defaultFetch);
+						}
+					break;
+				}
 			}
-		}
-		throw err; // rethrow unhandled errors
-	}
+			throw err; // rethrow unhandled errors
+		})
 }
 
 async function authorizedFetch(req) {
@@ -93,13 +92,16 @@ async function tokenFetch(req) {
 		&& !req.oauth2.tokens.authorization
 	) {
 		// authorization code flow
-		let authReqURL = getAuthTokenURI(req.oauth2.endpoints.authorize, req);
+		let authReqURL = getAuthTokenURL(req.oauth2.endpoints.authorize, req);
+		if (!req.oauth2.callbacks?.authorize || typeof req.oauth2.callbacks.authorize !== 'function') {
+			throw new Error('OAuth2Fetch with grant_type:authorization_code requires a callback function in request.oauth2.callbacks.authorize')
+		}
 		let token      = await req.oauth2.callbacks.authorize(authReqURL);
 		req.oauth2.tokens.authorization = token;
 	}
 	// using GET request, per spec #3.1
 	var tokenReq = {
-		url: getAccessTokenURI(req.oauth2.endpoints.token, req),
+		url: getAccessTokenURL(req.oauth2.endpoints.token, req),
 		headers: {
 			'Content-Type': 'application/x-www-form-urlencoded'
 		}
@@ -128,7 +130,7 @@ async function tokenRefresh(req)
 		grant_type: 'refresh_token'
 	})
 	refreshTokenReq = Object.assign(refreshTokenReq, {
-		url: getAccessTokenURI(req.oauth2.endpoints.token, refreshTokenReq),
+		url: getAccessTokenURL(req.oauth2.endpoints.token, refreshTokenReq),
 		headers: {
 			'Content-Type': 'application/x-www-form-urlencoded'
 		}
@@ -150,18 +152,27 @@ async function tokenRefresh(req)
 	return data
 }
 
-function getAuthTokenURI(url, req)
+function getAuthTokenURL(url, req)
 {
 	url = new URL(url);
 	url.hash = ''; //disallowed by spec #3.1
+	if (!req.oauth2?.client?.id) {
+		throw new Error('OAuth2Fetch requires request.oauth2.client.id setting');
+	}
+	if (!req.oauth2?.authRedirectURL) {
+		throw new Error('OAuth2Fetch requires request.oauth2.authRedirectURL setting');
+	}
+	if (!req.oauth2?.scope) {
+		throw new Error('OAuth2Fetch requires request.oauth2.scope setting');
+	}
 	let params = {
 		response_type: 'code',
 		client_id:     req.oauth2.client.id,
-		redirect_uri:  req.oauth2.authRedirectURI,
+		redirect_uri:  req.oauth2.authRedirectURL,
 		scope:         req.oauth2.scope,
 		state:         createState(req)
 	}
-	Object.entries(params).forEach(param => {
+	Object.keys(params).forEach(param => {
 		url.searchParams.set(param, params[param]); // each param may be set only once spec #3.1
 	});
 	return url.toString();
@@ -177,7 +188,7 @@ function createState(req) {
 	return randomState;
 }
 
-function getAccessTokenURI(url, req)
+function getAccessTokenURL(url, req)
 {
 	url  = new URL(url)
 	url.hash = '' //disallowed by spec (#3.1)
