@@ -3,7 +3,7 @@ const rest = window.MockServiceWorker.rest
 //FIXME: mock server should respond with correct error responses according to oauth2 spec
 //use sessionStorage to store tokens and check them instead of hardcoding values
 
-export const handlers = [
+var handlers = [
 
     rest.get('https://authorize-server.mock/authorize', (req, res, ctx) => {
         let expectedParams = {
@@ -116,6 +116,8 @@ export const handlers = [
     })
 
 ]
+
+export default handlers
 
 //FIXME: check correct error format for oauth2 
 function errorResponse(error, code=406) {
