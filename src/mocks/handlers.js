@@ -1,4 +1,4 @@
-import { rest } from 'msw'
+const rest = window.MockServiceWorker.rest
 
 //FIXME: mock server should respond with correct error responses according to oauth2 spec
 //use sessionStorage to store tokens and check them instead of hardcoding values
@@ -86,11 +86,39 @@ export const handlers = [
     		ctx.status(404),
     		ctx.body('404 Not Found')
     	)
+    }),
+
+    rest.get('https://resource-server.mock/protected/', (req, res, ctx) => {
+        let token = req.url.searchParams.get('access_token')
+        if (!token || token!=='accessToken') {
+            return res(
+                ctx.status(401),
+                ctx.body('401 Forbidden')
+            )
+        }
+        return res(
+            ctx.status(200),
+            ctx.json({
+                result: 'Success'
+            })
+        )
+    }),
+
+    rest.get('https://resource-server.mock/public/', (req, res, ctx) => {
+        let token = req.url.searchParams.get('access_token')
+        return res(
+            ctx.status(200),
+            ctx.json({
+                result: 'Success',
+                token: token
+            })
+        )
     })
+
 ]
 
 //FIXME: check correct error format for oauth2 
-errorResponse(error, code=406) {
+function errorResponse(error, code=406) {
 	return res(
 		ctx.status(code),
 		ctx.json({
@@ -100,11 +128,14 @@ errorResponse(error, code=406) {
 	)
 }
 
-checkParams(params, expected, optional=null) {
+function checkParams(params, expected, optional=null) {
+    if (!(params instanceof URLSearchParams)) {
+        throw new Error('params not of type URLSearchParams')
+    }
 	Object.keys(expected).forEach(expect => {
-		if (!params.has(expect) {
+		if (!params.has(expect)) {
 			throw new Error('Missing required parameter '+expect)
-		})
+		}
 		if (!matches(params.get(expect),expected[expect])) {
 			throw new Error('Parameter '+expect+' does not match expected value: "'+expected[expect]+'"')
 		}
@@ -112,7 +143,7 @@ checkParams(params, expected, optional=null) {
 	if (optional && typeof optional === 'object') {
 		Object.keys(optional).forEach(option => {
 			if (params.has(option)) {
-				if (!matches(params.get(option))) {
+				if (!matches(params.get(option), optional[option])) {
 					throw new Error('Parameter '+option+' does not match expected value: "'+optional[option]+'"')
 				}
 			}
@@ -125,4 +156,17 @@ checkParams(params, expected, optional=null) {
 			}
 		})		
 	}
+}
+
+function matches(param, expectedParam)
+{
+    if (typeof expectedParam === "string") {
+        return (expectedParam==='*' || param === expectedParam)
+    }
+
+    if (Array.isArray(expectedParam)) {
+        return expectedParam.includes(param)
+    }
+
+    return false;
 }

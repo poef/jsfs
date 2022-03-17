@@ -39,9 +39,9 @@ oauth2Fetch({
 
  */
 
-import defaultFetch, FetchError from './DefaultFetch.js';
+import { defaultFetch, FetchError } from './DefaultFetch.js';
 
-export oauth2Fetch = async function(req) {
+export default async function oauth2Fetch(req) {
 	if (req.oauth2 && req.oauth2.forceAuthorization) {
 		return authorizedFetch(req);
 	}
@@ -121,36 +121,38 @@ async function tokenFetch(req) {
 	return data;
 }
 
-async function tokenRefresh(req) {
-	let refreshTokenReq = Object.assign({}, req);
+async function tokenRefresh(req)
+{
+	let refreshTokenReq = Object.assign({}, req)
 	refreshTokenReq.oauth2 = Object.assign({}, req.oauth2, {
 		grant_type: 'refresh_token'
-	});
+	})
 	refreshTokenReq = Object.assign(refreshTokenReq, {
 		url: getAccessTokenURI(req.oauth2.endpoints.token, refreshTokenReq),
 		headers: {
 			'Content-Type': 'application/x-www-form-urlencoded'
 		}
-	};
-	let response = await defaultFetch(refreshTokenReq);
+	})
+	let response = await defaultFetch(refreshTokenReq)
 	if (!response.ok) {
-		throw new FetchError(res.status+': '+res.statusText, { cause: res });
+		throw new FetchError(res.status+': '+res.statusText, { cause: res })
 	}
-	let data = await response.json();
+	let data = await response.json()
 	req.oauth2.tokens.access = {
 		value:   data.access_token,
 		expires: getExpires(data.expires_in),
 		type:    data.token_type,
 		scope:   data.scope
-	};
-	if (data.refresh_token) {
-		req.oauth2.tokens.refresh = data.refresh_token;
 	}
-	return data;
+	if (data.refresh_token) {
+		req.oauth2.tokens.refresh = data.refresh_token
+	}
+	return data
 }
 
-function getAuthTokenURI(url, req) {
-	let url = new URL(url);
+function getAuthTokenURI(url, req)
+{
+	url = new URL(url);
 	url.hash = ''; //disallowed by spec #3.1
 	let params = {
 		response_type: 'code',
@@ -175,34 +177,37 @@ function createState(req) {
 	return randomState;
 }
 
-function getAccessTokenURI(url, req) {
-	let url  = new URL(url);
-	url.hash = ''; //disallowed by spec (#3.1)
+function getAccessTokenURI(url, req)
+{
+	url  = new URL(url)
+	url.hash = '' //disallowed by spec (#3.1)
 	let params = {
 		grant_type:    req.oauth2.grant_type,
 		client_id:     req.oauth2.client.id,
 		client_secret: req.oauth2.client.secret
-	};
+	}
 	if (req.oauth2.scope) {
-		params.scope = req.oauth2.scope;
+		params.scope = req.oauth2.scope
 	}
 	switch(req.oauth2.grant_type) {
 		case 'authorization_code':
 			if (req.oauth2.redirect_uri) {
-				params.redirect_uri = req.oauth2.redirect_uri;
+				params.redirect_uri = req.oauth2.redirect_uri
 			}
-			params.code = req.oauth2.tokens.authorization;
-			params.response_type = 'token'; // spec #3.1.1
-		break;
+			params.code = req.oauth2.tokens.authorization
+			params.response_type = 'token' // spec #3.1.1
+		break
 		case 'client_credentials':
-		break;
+			throw new Error('Not yet implemented')
+		break
 		case 'refresh_token':
-		break;
+			throw new Error('Not yet implemented')
+		break
 	}
 	Object.entries(params).forEach(param => {
-		url.searchParams.set(param, params[param]); // each param may be set only once spec #3.1
+		url.searchParams.set(param, params[param]) // each param may be set only once spec #3.1
 	});
-	return url.toString();
+	return url.toString()
 }
 
 function getAuthorizedRequest(req) {

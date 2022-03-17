@@ -1,4 +1,4 @@
-export defaultFetch = function(req) {
+export function defaultFetch(req) {
 	return fetch(req)
 	.then(res => {
 		if (!res.ok) {
@@ -7,6 +7,4 @@ export defaultFetch = function(req) {
 	});
 }
 
-export FetchError = class FetchError extends NetworkError {
-
-}
+export class FetchError extends Error {}
