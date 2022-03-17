@@ -26,6 +26,16 @@
 	window.startMSW = startMSW
 </script>
 <script>
+	let tokenStore = {
+		get: (req) => {
+			let tokens = localStorage.getItem('oauth2tokens') || '{}'
+			return JSON.parse(tokens)
+		},
+		set: (req, tokens) => {
+			localStorage.setItem('oauth2tokens', JSON.stringify(tokens))
+		}
+	}
+
 	startMSW()
 	.then(async () => {
 		let {default:oauth2fetch} = await import('../src/Fetch/OAuth2Fetch.js')
@@ -35,10 +45,32 @@
 		}, {
 			fetch: (el, value) => {
 				let req = new Request(value)
+				req.oauth2 = {
+					endpoints: {
+						authorize: 'https://authorization-server.mock/authorize'
+					},
+					client: {
+						id: 'clientId',
+						secret: 'clientSecret'
+					},
+					grant_type: 'authorization_code',
+					tokenStore: tokenStore,
+					authRedirectURL: window.location.href,
+					scope: 'gimme',
+					callbacks: {
+						authorize: (url) => {
+							// mock authorize, should show a user interface with authorization question
+							return fetch(url)
+							.then((res) => { return res.json() })
+							.then((json) => { return json.token })
+						}
+					}
+				}
 				console.log(req)
 				oauth2fetch(req)
-				.then((response) => {
-					console.log(response)
+				.then(async (response) => {
+					let json = await response.json()
+					alert('result: '+json.result)
 				})
 				.catch((err) => {
 					console.error(err)
