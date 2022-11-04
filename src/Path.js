@@ -38,9 +38,12 @@ export default class Path {
             }
             return result;
         }, []);
-        let result = '/'+pathnames.join('/');
-        if (Path.isFolder(path)) {
-            result += '/';
+        let result = '/';
+        if (pathnames.length) {
+            result += pathnames.join('/');
+            if (Path.isFolder(path)) {
+                result += '/';
+            }
         }
         return result;
     }
@@ -95,7 +98,11 @@ export default class Path {
         }
         path = path.split('/').filter(Boolean);
         path.pop();
-        return path.join('/')+'/';
+        let result = '/';
+        if (path.length) {
+            result += path.join('/')+'/';
+        }
+        return result;
     }
 
     static filename(path) {
@@ -118,6 +125,10 @@ export default class Path {
         }
         path = path.split('/').filter(Boolean)
         path.shift();
-        return path.join('/')+'/';
+        let result = '/';
+        if (path.length) {
+            result += path.join('/')+'/';
+        }
+        return result;
     }
 }
