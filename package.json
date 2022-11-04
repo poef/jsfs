@@ -1,6 +1,6 @@
 {
   "name": "jsfs",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "author": "auke@muze.nl",
   "source": "src/browser.js",
   "main": "dist/main.js",
