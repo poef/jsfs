@@ -21,8 +21,11 @@ class $28a5e24fd627cc25$export$2e2bcd8739ae039 {
             else if (entry !== ".") result.push(entry);
             return result;
         }, []);
-        let result = "/" + pathnames.join("/");
-        if ($28a5e24fd627cc25$export$2e2bcd8739ae039.isFolder(path)) result += "/";
+        let result = "/";
+        if (pathnames.length) {
+            result += pathnames.join("/");
+            if ($28a5e24fd627cc25$export$2e2bcd8739ae039.isFolder(path)) result += "/";
+        }
         return result;
     }
     static isAbsolute(path) {
@@ -55,7 +58,9 @@ class $28a5e24fd627cc25$export$2e2bcd8739ae039 {
         if (path instanceof $28a5e24fd627cc25$export$2e2bcd8739ae039) path = path.value;
         path = path.split("/").filter(Boolean);
         path.pop();
-        return path.join("/") + "/";
+        let result = "/";
+        if (path.length) result += path.join("/") + "/";
+        return result;
     }
     static filename(path) {
         if (path instanceof $28a5e24fd627cc25$export$2e2bcd8739ae039) path = path.value;
@@ -69,7 +74,9 @@ class $28a5e24fd627cc25$export$2e2bcd8739ae039 {
         if (path instanceof $28a5e24fd627cc25$export$2e2bcd8739ae039) path = path.value;
         path = path.split("/").filter(Boolean);
         path.shift();
-        return path.join("/") + "/";
+        let result = "/";
+        if (path.length) result += path.join("/") + "/";
+        return result;
     }
 }
 
@@ -121,13 +128,13 @@ class $f766e2be53780776$export$2e2bcd8739ae039 {
 
 
 class $7f6d864e2de13047$export$2e2bcd8739ae039 {
-    #url;
+    #baseUrl;
     #path;
     #exceptionHandler;
     #fetchParams;
-    constructor(url, exceptionHandler = null, fetchParams = {}){
-        this.#url = new URL(url, window.location.href);
-        this.#path = new (0, $28a5e24fd627cc25$export$2e2bcd8739ae039)(this.#url.pathname);
+    constructor(baseUrl, path = "/", exceptionHandler = null, fetchParams = {}){
+        this.#baseUrl = new URL(baseUrl, window.location.href);
+        this.#path = new (0, $28a5e24fd627cc25$export$2e2bcd8739ae039)(path);
         this.#exceptionHandler = exceptionHandler;
         this.#fetchParams = fetchParams;
     }
@@ -143,13 +150,12 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
     supportsStreamingWrite() {
         return $7f6d864e2de13047$var$supportsRequestStreamsP;
     }
-    supportsStreaminRead() {
+    supportsStreamingRead() {
         return true;
     }
     cd(path) {
         if (!(0, $28a5e24fd627cc25$export$2e2bcd8739ae039).isPath(path)) throw new TypeError(path + " is not a valid path");
-        let url = new URL(path, this.#url);
-        return new $7f6d864e2de13047$export$2e2bcd8739ae039(url.href);
+        return new $7f6d864e2de13047$export$2e2bcd8739ae039(this.#baseUrl.href, path);
     }
     async write(path, contents, metadata = null) {
         let params = Object.assign({}, this.#fetchParams, {
@@ -189,12 +195,15 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
             if (response.ok) {
                 let contentType = response.headers.get("Content-Type").split(";")[0];
                 if (supportedContentTypes.includes(contentType)) return response.text();
-                else throw new TypeError("URL " + this.#url + " is not of a supported content type", {
-                    cause: response
-                });
+                else {
+                    let url1 = this.#getUrl(path);
+                    throw new TypeError("URL " + url1 + " is not of a supported content type", {
+                        cause: response
+                    });
+                }
             } else throw response;
         }).then((html)=>{
-            let parentUrl = new URL(this.#url);
+            let parentUrl = this.#getUrl(path);
             let dom = document.createElement("template");
             dom.innerHTML = html;
             let links = dom.content.querySelectorAll("a[href]");
@@ -214,9 +223,12 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
             });
         });
     }
-    async #fetch(path, options) {
-        let url = new URL(path, this.#url);
-        return fetch(url, options).catch((e)=>{
+     #getUrl(path) {
+        path = (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).collapse(this.#baseUrl.pathname + (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).collapse(path));
+        return new URL(path, this.#baseUrl);
+    }
+    async #fetch(path1, options) {
+        return fetch(this.#getUrl(path1), options).catch((e)=>{
             if (!this.#exceptionHandler || !this.#exceptionHandler(url, options, e)) throw e;
         });
     }
@@ -234,8 +246,10 @@ const $7f6d864e2de13047$var$supportsRequestStreamsP = (async ()=>{
 })();
 
 
+
 window.JSFS = (0, $f766e2be53780776$export$2e2bcd8739ae039);
 window.jsfsHttpAdapter = (0, $7f6d864e2de13047$export$2e2bcd8739ae039);
+window.jsfsPath = (0, $28a5e24fd627cc25$export$2e2bcd8739ae039);
 
 
 //# sourceMappingURL=main.js.map
