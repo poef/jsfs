@@ -1,5 +1,5 @@
 {
-  "name": "jsfs",
+  "name": "@muze-nl/jsfs",
   "version": "0.0.3",
   "author": "auke@muze.nl",
   "source": "src/browser.js",
@@ -10,5 +10,18 @@
   },
   "msw": {
     "workerDirectory": "www"
-  }
+  },
+  "description": "A filesystem abstraction for remote storage",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/poef/jsfs.git"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/poef/jsfs/issues"
+  },
+  "homepage": "https://github.com/poef/jsfs#readme"
 }
