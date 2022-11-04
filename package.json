@@ -1,4 +1,10 @@
 {
+  "name": "jsfs",
+  "version": "0.0.2",
+  "author": "auke@muze.nl",
+  "source": "src/browser.js",
+  "main": "dist/main.js",
+  "type": "module",
   "devDependencies": {
     "msw": "^0.36.7"
   },
