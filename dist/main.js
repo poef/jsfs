@@ -126,9 +126,8 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
     #exceptionHandler;
     #fetchParams;
     constructor(url, exceptionHandler = null, fetchParams = {}){
-        this.#url = url;
-        let u = new URL(url, window.location.href);
-        this.#path = new (0, $28a5e24fd627cc25$export$2e2bcd8739ae039)(u.pathname);
+        this.#url = new URL(url, window.location.href);
+        this.#path = new (0, $28a5e24fd627cc25$export$2e2bcd8739ae039)(this.#url.pathname);
         this.#exceptionHandler = exceptionHandler;
         this.#fetchParams = fetchParams;
     }
