@@ -104,4 +104,20 @@ export default class Path {
         }
         return path.split('/').filter(Boolean).pop();
     }
+    
+    static head(path) {
+        if (path instanceof Path) {
+            path = path.value;
+        }
+        return path.split('/').filter(Boolean).shift();
+    }
+    
+    static tail(path) {
+        if (path instanceof Path) {
+            path = path.value;
+        }
+        path = path.split('/').filter(Boolean)
+        path.shift();
+        return path.join('/')+'/';
+    }
 }
