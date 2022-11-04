@@ -8,9 +8,8 @@ export default class HttpAdapter {
     #fetchParams;
 
     constructor(url, exceptionHandler=null, fetchParams={}) {
-        this.#url = url;
-        let u = new URL(url, window.location.href);
-        this.#path = new Path(u.pathname);
+        this.#url = new URL(url, window.location.href);
+        this.#path = new Path(this.#url.pathname);
         this.#exceptionHandler = exceptionHandler;
         this.#fetchParams = fetchParams;
     }
