@@ -2,14 +2,14 @@ import Path from '../Path.js';
 
 export default class HttpAdapter {
     
-    #url;
+    #baseUrl;
     #path;
     #exceptionHandler;
     #fetchParams;
 
-    constructor(url, exceptionHandler=null, fetchParams={}) {
-        this.#url = new URL(url, window.location.href);
-        this.#path = new Path(this.#url.pathname);
+    constructor(baseUrl, path='/', exceptionHandler=null, fetchParams={}) {
+        this.#baseUrl = new URL(baseUrl, window.location.href);
+        this.#path = new Path(path);
         this.#exceptionHandler = exceptionHandler;
         this.#fetchParams = fetchParams;
     }
@@ -30,7 +30,7 @@ export default class HttpAdapter {
         return supportsRequestStreamsP;
     }
 
-    supportsStreaminRead() {
+    supportsStreamingRead() {
         return true;
     }
 
@@ -38,8 +38,7 @@ export default class HttpAdapter {
         if (!Path.isPath(path)) {
             throw new TypeError(path+' is not a valid path');
         }
-        let url = new URL(path, this.#url);
-        return new HttpAdapter(url.href);
+        return new HttpAdapter(this.#baseUrl.href, path);
     }
 
     async write(path, contents, metadata=null) {
@@ -90,7 +89,8 @@ export default class HttpAdapter {
                     if (supportedContentTypes.includes(contentType)) {
                         return response.text();
                     } else {
-                        throw new TypeError('URL '+this.#url+' is not of a supported content type', {
+                        let url = this.#getUrl(path);
+                        throw new TypeError('URL '+url+' is not of a supported content type', {
                             cause: response
                         });
                     }
@@ -99,7 +99,7 @@ export default class HttpAdapter {
                 }
             })
             .then(html => {
-                let parentUrl = new URL(this.#url);
+                let parentUrl = this.#getUrl(path);
                 let dom = document.createElement('template');
                 dom.innerHTML = html;
                 let links = dom.content.querySelectorAll('a[href]');
@@ -120,9 +120,13 @@ export default class HttpAdapter {
             });
     }
 
+    #getUrl(path) {
+        path = Path.collapse(this.#baseUrl.pathname + Path.collapse(path));
+        return new URL(path, this.#baseUrl);
+    }
+
     async #fetch(path, options) {
-        let url = new URL(path, this.#url);
-        return fetch(url, options)
+        return fetch(this.#getUrl(path), options)
         .catch(e => {
             if (!this.#exceptionHandler || !this.#exceptionHandler(url, options, e)) {
                 throw e;
