@@ -27,7 +27,7 @@ export default class HttpAdapter {
     }
 
     supportsStreamingWrite() {
-        return supportsRequestStreamsP;
+        return supportsRequestStreams;
     }
 
     supportsStreamingRead() {
@@ -147,7 +147,7 @@ export default class HttpAdapter {
     }
 }
 
-const supportsRequestStreamsP = (async () => {
+const supportsRequestStreams = (async () => {
     const supportsStreamsInRequestObjects = !new Request(
         '', 
         {
