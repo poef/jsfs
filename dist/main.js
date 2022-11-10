@@ -151,7 +151,7 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
         return true;
     }
     supportsStreamingWrite() {
-        return $7f6d864e2de13047$var$supportsRequestStreamsP;
+        return $7f6d864e2de13047$var$supportsRequestStreams;
     }
     supportsStreamingRead() {
         return true;
@@ -211,7 +211,10 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
         dom.innerHTML = html;
         let links = dom.content.querySelectorAll("a[href]");
         return Array.from(links).map((link)=>{
-            let url1 = new URL(link.getAttribute("href"), parentUrl.href); // use getAttribute to get the unchanged href value
+            // use getAttribute to get the unchanged href value
+            // otherwise relative hrefs will be turned into absolute values relative to the current window.location
+            // instead of the path used in list()
+            let url1 = new URL(link.getAttribute("href"), parentUrl.href);
             link.href = url1.href;
             return {
                 filename: (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).filename(link.pathname),
@@ -220,10 +223,9 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
                 href: link.href
             };
         }).filter((link)=>{
-            let testURL = new URL(link.href);
             // show only links that have the current URL as direct parent
+            let testURL = new URL(link.href);
             testURL.pathname = (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).parent(testURL.pathname);
-            // this also filters out links with extra query string of fragment hash -- is that correct? @TODO
             return testURL.href === parentUrl.href;
         }).map((link)=>{
             return {
@@ -243,7 +245,7 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
         });
     }
 }
-const $7f6d864e2de13047$var$supportsRequestStreamsP = (async ()=>{
+const $7f6d864e2de13047$var$supportsRequestStreams = (async ()=>{
     const supportsStreamsInRequestObjects = !new Request("", {
         body: new ReadableStream(),
         method: "POST"
