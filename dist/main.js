@@ -9,6 +9,9 @@ class $28a5e24fd627cc25$export$2e2bcd8739ae039 {
     toString() {
         return this.#value;
     }
+    get length() {
+        return this.#value.length;
+    }
     static collapse(path, cwd = "") {
         if (path instanceof $28a5e24fd627cc25$export$2e2bcd8739ae039) return path.value;
         if (typeof path !== "string") throw new TypeError("path argument must be a string or an instance of Path");
@@ -191,39 +194,46 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
             "text/xhtml+xml",
             "text/xml"
         ];
-        return this.read(path).then((response)=>{
-            if (response.ok) {
-                let contentType = response.headers.get("Content-Type").split(";")[0];
-                if (supportedContentTypes.includes(contentType)) return response.text();
-                else {
-                    let url1 = this.#getUrl(path);
-                    throw new TypeError("URL " + url1 + " is not of a supported content type", {
-                        cause: response
-                    });
-                }
-            } else throw response;
-        }).then((html)=>{
-            let parentUrl = this.#getUrl(path);
-            let dom = document.createElement("template");
-            dom.innerHTML = html;
-            let links = dom.content.querySelectorAll("a[href]");
-            links = Array.from(links).filter((link)=>{
-                // show only links that have the current URL as direct parent
-                let parentLink = link.cloneNode();
-                parentLink.pathname = (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).parent(parentLink.pathname);
-                // this also filters out links with extra query string of fragment hash -- is that correct? @TODO
-                return parentLink.href === parentUrl.href;
-            });
-            return links.map((link)=>{
-                return {
-                    filename: (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).filename(link.pathname),
-                    path: link.pathname,
-                    name: link.innerText
-                };
-            });
+        let response = await this.read(path);
+        if (response.ok) {
+            let contentType = response.headers.get("Content-Type").split(";")[0];
+            if (supportedContentTypes.includes(contentType)) var html = await response.text();
+            else {
+                let url1 = this.#getUrl(path);
+                throw new TypeError("URL " + url1 + " is not of a supported content type", {
+                    cause: response
+                });
+            }
+        } else throw response;
+        let basePath = (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).collapse(this.#baseUrl.pathname);
+        let parentUrl = this.#getUrl(path);
+        let dom = document.createElement("template");
+        dom.innerHTML = html;
+        let links = dom.content.querySelectorAll("a[href]");
+        return Array.from(links).map((link)=>{
+            let url1 = new URL(link.getAttribute("href"), parentUrl.href); // use getAttribute to get the unchanged href value
+            link.href = url1.href;
+            return {
+                filename: (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).filename(link.pathname),
+                path: link.pathname,
+                name: link.innerText,
+                href: link.href
+            };
+        }).filter((link)=>{
+            let testURL = new URL(link.href);
+            // show only links that have the current URL as direct parent
+            testURL.pathname = (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).parent(testURL.pathname);
+            // this also filters out links with extra query string of fragment hash -- is that correct? @TODO
+            return testURL.href === parentUrl.href;
+        }).map((link)=>{
+            return {
+                filename: link.filename,
+                path: link.path.substring(basePath.length - 1),
+                name: link.name
+            };
         });
     }
-     #getUrl(path) {
+    #getUrl(path) {
         path = (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).collapse(this.#baseUrl.pathname + (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).collapse(path));
         return new URL(path, this.#baseUrl);
     }

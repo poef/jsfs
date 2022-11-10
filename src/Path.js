@@ -13,6 +13,10 @@ export default class Path {
         return this.#value;
     }
 
+    get length() {
+        return this.#value.length;
+    }
+
     static collapse(path, cwd='') {
         if (path instanceof Path) {
             return path.value;

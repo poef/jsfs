@@ -82,42 +82,54 @@ export default class HttpAdapter {
         let supportedContentTypes = [
             'text/html','text/xhtml','text/xhtml+xml','text/xml'
         ];
-        return this.read(path)
-            .then(response => {
-                if (response.ok) {
-                    let contentType = response.headers.get('Content-Type').split(';')[0];
-                    if (supportedContentTypes.includes(contentType)) {
-                        return response.text();
-                    } else {
-                        let url = this.#getUrl(path);
-                        throw new TypeError('URL '+url+' is not of a supported content type', {
-                            cause: response
-                        });
-                    }
-                } else {
-                    throw response
-                }
-            })
-            .then(html => {
-                let parentUrl = this.#getUrl(path);
-                let dom = document.createElement('template');
-                dom.innerHTML = html;
-                let links = dom.content.querySelectorAll('a[href]');
-                links = Array.from(links).filter(link => {
-                    // show only links that have the current URL as direct parent
-                    let parentLink = link.cloneNode();
-                    parentLink.pathname = Path.parent(parentLink.pathname);
-                    // this also filters out links with extra query string of fragment hash -- is that correct? @TODO
-                    return parentLink.href===parentUrl.href;
+        let response = await this.read(path)
+        if (response.ok) {
+            let contentType = response.headers.get('Content-Type').split(';')[0];
+            if (supportedContentTypes.includes(contentType)) {
+                var html = await response.text();
+            } else {
+                let url = this.#getUrl(path);
+                throw new TypeError('URL '+url+' is not of a supported content type', {
+                    cause: response
                 });
-                return links.map(link => {
-                    return {
-                        filename: Path.filename(link.pathname),
-                        path: link.pathname,
-                        name: link.innerText
-                    }
-                });
-            });
+            }
+        } else {
+            throw response
+        }
+
+        let basePath = Path.collapse(this.#baseUrl.pathname);
+        let parentUrl = this.#getUrl(path);
+        let dom = document.createElement('template');
+        dom.innerHTML = html;
+        let links = dom.content.querySelectorAll('a[href]');
+
+        return Array.from(links)
+        .map(link => {
+            // use getAttribute to get the unchanged href value
+            // otherwise relative hrefs will be turned into absolute values relative to the current window.location
+            // instead of the path used in list()
+            let url = new URL(link.getAttribute('href'), parentUrl.href); 
+            link.href = url.href;
+            return {
+                filename: Path.filename(link.pathname),
+                path: link.pathname,
+                name: link.innerText,
+                href: link.href
+            }
+        })
+        .filter(link => {
+            // show only links that have the current URL as direct parent
+            let testURL = new URL(link.href)
+            testURL.pathname = Path.parent(testURL.pathname);
+            return testURL.href===parentUrl.href;
+        })
+        .map(link => {
+            return {
+                filename: link.filename,
+                path: link.path.substring(basePath.length-1), //TODO: Path.collapse() now always adds a trailing '/', so this works, but the added trailing / is probably not correct
+                name: link.name
+            }
+        })
     }
 
     #getUrl(path) {
