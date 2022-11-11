@@ -160,6 +160,7 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
         if (!(0, $28a5e24fd627cc25$export$2e2bcd8739ae039).isPath(path)) throw new TypeError(path + " is not a valid path");
         return new $7f6d864e2de13047$export$2e2bcd8739ae039(this.#baseUrl.href, path);
     }
+    //FIXME: return a jsfs result object instead of http response
     async write(path, contents, metadata = null) {
         let params = Object.assign({}, this.#fetchParams, {
             method: "PUT",
@@ -167,14 +168,33 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
         });
         return this.#fetch(path, params);
     }
-    writeStream(path, writer, metadata = null) {}
+    writeStream(path, writer, metadata = null) {
+        throw new Error("Not yet implemented");
+    }
     async read(path) {
         let params = Object.assign({}, this.#fetchParams, {
             method: "GET"
         });
-        return this.#fetch(path, params);
+        let response = await this.#fetch(path, params);
+        //TODO: create a special jsfsFile class
+        //with a toString that returns the contents
+        let result = {
+            type: this.#getMimetype(response),
+            name: (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).filename(path),
+            http: {
+                headers: response.headers,
+                status: response.status,
+                url: response.url
+            }
+        };
+        if (result.type.match(/text\/.*/)) result.contents = await response.text();
+        else if (result.type.match(/application\/json.*/)) result.contents = await response.json();
+        else result.contents = await response.blob();
+        return result;
     }
-    readStream(path, reader) {}
+    readStream(path, reader) {
+        throw new Error("Not yet implemented");
+    }
     async exists(path) {
         let params = Object.assign({}, this.#fetchParams, {
             method: "HEAD"
@@ -194,19 +214,17 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
             "text/xhtml+xml",
             "text/xml"
         ];
-        let response = await this.read(path);
-        if (response.ok) {
-            let contentType = response.headers.get("Content-Type").split(";")[0];
-            if (supportedContentTypes.includes(contentType)) var html = await response.text();
-            else {
-                let url1 = this.#getUrl(path);
-                throw new TypeError("URL " + url1 + " is not of a supported content type", {
-                    cause: response
-                });
-            }
-        } else throw response;
+        let result = await this.read(path);
+        if (supportedContentTypes.includes(result.type.split(";")[0])) var html = result.contents;
+        else {
+            let url1 = this.#getUrl(path);
+            throw new TypeError("URL " + url1 + " is not of a supported content type", {
+                cause: result
+            });
+        }
         let basePath = (0, $28a5e24fd627cc25$export$2e2bcd8739ae039).collapse(this.#baseUrl.pathname);
         let parentUrl = this.#getUrl(path);
+        // TODO: use DOMParser() directly here
         let dom = document.createElement("template");
         dom.innerHTML = html;
         let links = dom.content.querySelectorAll("a[href]");
@@ -244,11 +262,16 @@ class $7f6d864e2de13047$export$2e2bcd8739ae039 {
             if (!this.#exceptionHandler || !this.#exceptionHandler(url, options, e)) throw e;
         });
     }
+    #getMimetype(response) {
+        if (response.headers.has("Content-Type")) return response.headers.get("Content-Type");
+        else return null;
+    }
 }
 const $7f6d864e2de13047$var$supportsRequestStreams = (async ()=>{
     const supportsStreamsInRequestObjects = !new Request("", {
         body: new ReadableStream(),
-        method: "POST"
+        method: "POST",
+        duplex: "half" // required in chrome
     }).headers.has("Content-Type");
     if (!supportsStreamsInRequestObjects) return false;
     return fetch("data:a/a;charset=utf-8,", {
