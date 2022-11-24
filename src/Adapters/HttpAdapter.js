@@ -192,6 +192,7 @@ const supportsRequestStreams = (async () => {
         {
             method: 'POST',
             body: new ReadableStream(),
+            duplex: 'half'
         }
     )
     .then(() => true, () => false);
