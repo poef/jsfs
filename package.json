@@ -1,11 +1,12 @@
 {
   "name": "@muze-nl/jsfs",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "author": "auke@muze.nl",
   "source": "src/browser.js",
   "main": "dist/main.js",
   "type": "module",
   "devDependencies": {
+    "esbuild": "^0.25.0",
     "msw": "^0.36.7"
   },
   "msw": {
@@ -13,7 +14,9 @@
   },
   "description": "A filesystem abstraction for remote storage",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build-dev": "esbuild --bundle src/browser.js --outfile=dist/browser.js --sourcemap;",
+    "build": "esbuild --bundle src/browser.js --outfile=dist/browser.min.js --minify --sourcemap;"
   },
   "repository": {
     "type": "git",
